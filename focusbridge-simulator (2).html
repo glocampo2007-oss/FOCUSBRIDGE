@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FocusBridge Campus — App Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --red: #CC0000; --cream: #F0EDE6; --dark: #1A1A1A;
+    --mid: #555; --light: #999; --white: #fff;
+    --border: rgba(0,0,0,0.08); --shadow: 0 4px 24px rgba(0,0,0,0.10);
+  }
+  body { background: #DDDAD3; font-family: 'DM Sans', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 40px 20px; }
+
+  .phone { width: 375px; height: 812px; background: var(--dark); border-radius: 52px; padding: 12px; box-shadow: 0 40px 80px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.12); position: relative; flex-shrink: 0; }
+  .phone-inner { width: 100%; height: 100%; background: var(--cream); border-radius: 42px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+  .notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 120px; height: 28px; background: var(--dark); border-radius: 0 0 20px 20px; z-index: 100; }
+  .status-bar { display: flex; justify-content: space-between; padding: 10px 24px 0; font-size: 11px; font-weight: 600; color: var(--dark); flex-shrink: 0; position: relative; z-index: 50; }
+
+  .screen { flex: 1; overflow-y: auto; overflow-x: hidden; display: none; flex-direction: column; padding-bottom: 80px; scrollbar-width: none; }
+  .screen::-webkit-scrollbar { display: none; }
+  .screen.active { display: flex; }
+
+  .bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; height: 72px; background: rgba(240,237,230,0.95); backdrop-filter: blur(12px); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-around; padding: 0 4px 8px; z-index: 200; border-radius: 0 0 42px 42px; }
+  .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: none; cursor: pointer; padding: 8px 0; color: var(--light); font-family: 'DM Sans', sans-serif; font-size: 8px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; transition: color 0.2s; }
+  .nav-btn.active { color: var(--red); }
+  .nav-btn svg { width: 19px; height: 19px; }
+
+  /* HOME */
+  .home-header { background: var(--dark); padding: 48px 24px 28px; color: var(--cream); position: relative; overflow: hidden; }
+  .home-header::after { content: 'FB'; position: absolute; right: -10px; top: 10px; font-family: 'Bebas Neue', sans-serif; font-size: 100px; color: rgba(255,255,255,0.04); line-height: 1; }
+  .home-greeting { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 4px; }
+  .home-name { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: var(--cream); line-height: 1; }
+  .home-streak { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; background: rgba(204,0,0,0.18); border: 1px solid rgba(204,0,0,0.3); border-radius: 20px; padding: 5px 12px; font-size: 11px; font-weight: 600; color: #ff6b6b; letter-spacing: 0.05em; }
+  .section-pad { padding: 20px 20px 0; }
+  .section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--light); font-weight: 600; margin-bottom: 12px; }
+  .focus-card { margin: 20px 20px 0; background: var(--white); border-radius: 24px; padding: 24px; box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .focus-card-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--light); font-weight: 600; align-self: flex-start; }
+  .focus-ring-wrap { position: relative; width: 140px; height: 140px; }
+  .focus-ring-wrap svg { width: 140px; height: 140px; }
+  .focus-ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .focus-ring-time { font-family: 'Bebas Neue', sans-serif; font-size: 38px; color: var(--dark); line-height: 1; }
+  .focus-ring-sub { font-size: 10px; color: var(--light); margin-top: 2px; }
+  .focus-start-btn { width: 100%; background: var(--red); color: var(--white); border: none; border-radius: 14px; padding: 14px; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 0.08em; cursor: pointer; transition: transform 0.15s; }
+  .focus-start-btn:hover { transform: scale(0.99); }
+  .stats-row { display: flex; gap: 10px; margin: 14px 20px 0; }
+  .stat-card { flex: 1; background: var(--white); border-radius: 16px; padding: 14px 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); text-align: center; }
+  .stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: var(--dark); line-height: 1; }
+  .stat-unit { font-size: 11px; color: var(--light); margin-top: 3px; }
+  .checkin-card { margin: 14px 20px 0; background: linear-gradient(135deg, var(--dark), #2a1a1a); border-radius: 20px; padding: 18px 20px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: transform 0.15s; }
+  .checkin-card:hover { transform: scale(0.99); }
+  .checkin-icon { font-size: 28px; flex-shrink: 0; }
+  .checkin-text h4 { color: var(--cream); font-size: 13px; font-weight: 600; }
+  .checkin-text p { color: rgba(255,255,255,0.45); font-size: 11px; margin-top: 2px; }
+  .checkin-arrow { margin-left: auto; color: var(--red); font-size: 18px; }
+  .challenge-card { background: var(--white); border-radius: 20px; padding: 16px 18px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 12px; }
+  .challenge-badge { width: 44px; height: 44px; background: #fff3f3; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .challenge-info h4 { font-size: 13px; font-weight: 600; color: var(--dark); }
+  .challenge-info p { font-size: 11px; color: var(--light); margin-top: 2px; }
+  .challenge-pts { margin-left: auto; background: var(--red); color: var(--white); font-size: 10px; font-weight: 700; border-radius: 8px; padding: 4px 8px; white-space: nowrap; }
+
+  /* FOCUS SCREEN */
+  .focus-screen-bg { background: var(--dark); flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 32px 100px; gap: 28px; }
+  .focus-mode-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.2em; color: rgba(255,255,255,0.3); font-weight: 600; }
+  .big-timer { font-family: 'Bebas Neue', sans-serif; font-size: 88px; color: var(--cream); letter-spacing: 0.04em; line-height: 1; text-align: center; }
+  .big-timer span { color: var(--red); }
+  .focus-progress-bar-wrap { width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; }
+  .focus-progress-bar { height: 4px; background: var(--red); border-radius: 2px; transition: width 1s linear; }
+  .focus-msg { font-size: 13px; color: rgba(255,255,255,0.45); text-align: center; line-height: 1.5; max-width: 240px; }
+  .focus-controls { display: flex; gap: 16px; }
+  .ctrl-btn { width: 64px; height: 64px; border-radius: 50%; border: none; cursor: pointer; font-size: 22px; display: flex; align-items: center; justify-content: center; transition: transform 0.15s; }
+  .ctrl-btn:hover { transform: scale(1.07); }
+  .ctrl-btn.primary { background: var(--red); color: var(--white); width: 80px; height: 80px; font-size: 26px; }
+  .ctrl-btn.secondary { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); }
+
+  /* CHECK-IN */
+  .checkin-screen { padding: 48px 24px 0; gap: 18px; }
+  .checkin-screen h2 { font-family: 'Bebas Neue', sans-serif; font-size: 40px; color: var(--dark); line-height: 1.1; }
+  .checkin-screen p { font-size: 13px; color: var(--mid); line-height: 1.6; }
+  .mood-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .mood-btn { aspect-ratio: 1; border: 2px solid var(--border); border-radius: 16px; background: var(--white); font-size: 26px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; transition: border-color 0.2s, transform 0.15s; padding: 8px 0; }
+  .mood-btn span { font-size: 9px; color: var(--light); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .mood-btn.selected { border-color: var(--red); background: #fff3f3; transform: scale(1.06); }
+  .sleep-slider-wrap { background: var(--white); border-radius: 20px; padding: 18px 20px; box-shadow: var(--shadow); }
+  .sleep-slider-wrap label { font-size: 12px; font-weight: 600; color: var(--mid); display: block; margin-bottom: 12px; }
+  .sleep-display { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--dark); margin-bottom: 8px; }
+  input[type=range] { width: 100%; accent-color: var(--red); }
+  .submit-btn { width: 100%; background: var(--red); color: var(--white); border: none; border-radius: 14px; padding: 16px; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 0.08em; cursor: pointer; transition: transform 0.15s; }
+  .submit-btn:hover { transform: scale(0.99); }
+  .checkin-done { display: none; flex-direction: column; align-items: center; gap: 12px; padding: 60px 24px; text-align: center; }
+  .checkin-done.active { display: flex; }
+  .checkin-done .big-emoji { font-size: 64px; }
+  .checkin-done h3 { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--dark); }
+  .checkin-done p { font-size: 13px; color: var(--mid); line-height: 1.6; }
+
+  /* CHALLENGES */
+  .challenges-screen { padding: 48px 20px 0; }
+  .challenges-screen h2 { font-family: 'Bebas Neue', sans-serif; font-size: 40px; color: var(--dark); margin-bottom: 4px; }
+  .challenges-screen .sub { font-size: 12px; color: var(--light); margin-bottom: 20px; }
+  .pts-banner { background: var(--dark); border-radius: 20px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .pts-banner-left { font-size: 12px; color: rgba(255,255,255,0.5); }
+  .pts-banner-val { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: var(--red); }
+  .challenge-item { background: var(--white); border-radius: 18px; padding: 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); cursor: pointer; transition: transform 0.15s; }
+  .challenge-item:hover { transform: translateX(3px); }
+  .ci-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+  .ci-icon.red { background: #fff0f0; } .ci-icon.green { background: #f0fff4; } .ci-icon.blue { background: #f0f4ff; } .ci-icon.gold { background: #fffbf0; }
+  .ci-body { flex: 1; }
+  .ci-body h4 { font-size: 13px; font-weight: 600; color: var(--dark); }
+  .ci-body p { font-size: 11px; color: var(--light); margin-top: 2px; }
+  .ci-progress-wrap { margin-top: 8px; height: 4px; background: #eee; border-radius: 2px; }
+  .ci-progress { height: 4px; border-radius: 2px; background: var(--red); }
+  .ci-pts { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--red); flex-shrink: 0; }
+  .ci-check { width: 22px; height: 22px; border-radius: 50%; background: #e8ffe8; border: 1.5px solid #4caf50; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+
+  /* REWARDS */
+  .rewards-screen { padding: 48px 20px 0; }
+  .rewards-screen h2 { font-family: 'Bebas Neue', sans-serif; font-size: 40px; color: var(--dark); margin-bottom: 4px; }
+  .rewards-sub { font-size: 12px; color: var(--light); margin-bottom: 20px; }
+  .rewards-pts-card { background: linear-gradient(135deg, var(--red), #880000); border-radius: 22px; padding: 24px; margin-bottom: 20px; color: var(--white); position: relative; overflow: hidden; }
+  .rewards-pts-card::after { content: '★'; position: absolute; right: -10px; top: -10px; font-size: 100px; color: rgba(255,255,255,0.05); }
+  .rpc-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; opacity: 0.6; margin-bottom: 4px; }
+  .rpc-pts { font-family: 'Bebas Neue', sans-serif; font-size: 56px; line-height: 1; }
+  .rpc-sub { font-size: 11px; opacity: 0.5; margin-top: 4px; }
+  .reward-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .reward-card { background: var(--white); border-radius: 18px; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); cursor: pointer; transition: transform 0.15s; position: relative; overflow: hidden; }
+  .reward-card:hover { transform: scale(0.98); }
+  .reward-card.locked { opacity: 0.5; }
+  .reward-card .rc-icon { font-size: 30px; margin-bottom: 8px; }
+  .reward-card h4 { font-size: 12px; font-weight: 600; color: var(--dark); }
+  .reward-card p { font-size: 10px; color: var(--light); margin-top: 2px; }
+  .rc-cost { display: inline-block; margin-top: 8px; font-size: 10px; font-weight: 700; color: var(--red); background: #fff0f0; border-radius: 6px; padding: 2px 7px; }
+  .rc-lock { position: absolute; top: 10px; right: 10px; font-size: 14px; opacity: 0.4; }
+
+  /* ======= GRADES ======= */
+  .grades-screen { padding: 48px 20px 0; }
+  .grades-screen h2 { font-family: 'Bebas Neue', sans-serif; font-size: 40px; color: var(--dark); margin-bottom: 4px; }
+  .grades-sub { font-size: 12px; color: var(--light); margin-bottom: 18px; }
+
+  .gpa-banner { background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 22px; padding: 20px 22px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; position: relative; overflow: hidden; }
+  .gpa-banner::after { content: 'GPA'; position: absolute; right: -8px; top: -4px; font-family: 'Bebas Neue', sans-serif; font-size: 80px; color: rgba(255,255,255,0.04); }
+  .gpa-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; color: rgba(255,255,255,0.4); margin-bottom: 4px; }
+  .gpa-val { font-family: 'Bebas Neue', sans-serif; font-size: 52px; color: var(--white); line-height: 1; }
+  .gpa-sub { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 3px; }
+  .gpa-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .gpa-badge { background: rgba(204,0,0,0.25); border: 1px solid rgba(204,0,0,0.4); border-radius: 10px; padding: 5px 10px; font-size: 11px; font-weight: 600; color: #ff8080; text-align: center; }
+  .gpa-semester { font-size: 10px; color: rgba(255,255,255,0.3); }
+
+  .sem-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .sem-tab { flex: 1; padding: 8px; border-radius: 10px; background: var(--white); border: 2px solid var(--border); font-size: 11px; font-weight: 600; color: var(--light); cursor: pointer; text-align: center; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
+  .sem-tab.active { background: var(--red); color: var(--white); border-color: var(--red); }
+
+  .subject-card { background: var(--white); border-radius: 18px; padding: 16px; margin-bottom: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); cursor: pointer; transition: transform 0.15s; }
+  .subject-card:hover { transform: translateX(3px); }
+  .subject-top { display: flex; align-items: center; gap: 12px; }
+  .subject-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .si-purple { background: #f3f0ff; } .si-teal { background: #f0fbff; } .si-orange { background: #fff8f0; } .si-green { background: #f0fff4; } .si-pink { background: #fff0f5; } .si-blue { background: #f0f4ff; }
+  .subject-info { flex: 1; }
+  .subject-info h4 { font-size: 13px; font-weight: 600; color: var(--dark); }
+  .subject-info p { font-size: 10px; color: var(--light); margin-top: 2px; }
+  .subject-grade { font-family: 'Bebas Neue', sans-serif; font-size: 24px; flex-shrink: 0; }
+  .sg-a { color: #16a34a; } .sg-b { color: #2563eb; } .sg-c { color: #d97706; } .sg-d { color: var(--red); }
+  .grade-bar-wrap { margin-top: 10px; height: 5px; background: #f0f0f0; border-radius: 3px; }
+  .grade-bar { height: 5px; border-radius: 3px; }
+  .gb-a { background: #16a34a; } .gb-b { background: #2563eb; } .gb-c { background: #d97706; } .gb-d { background: var(--red); }
+
+  .subject-detail { display: none; margin-top: 14px; border-top: 1px solid #f4f4f4; padding-top: 14px; }
+  .subject-card.open .subject-detail { display: block; }
+  .grade-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f8f8f8; }
+  .grade-row:last-child { border-bottom: none; }
+  .gr-name { font-size: 11px; color: var(--mid); }
+  .gr-weight { font-size: 10px; color: var(--light); }
+  .gr-score { font-size: 12px; font-weight: 600; color: var(--dark); }
+  .focus-tip { margin-top: 12px; border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .focus-tip.good { background: #f0fff4; }
+  .focus-tip.warn { background: #fff8f0; }
+  .focus-tip.info { background: #fff3f3; }
+  .ft-label { font-size: 11px; font-weight: 600; }
+  .ft-label.good { color: #16a34a; } .ft-label.warn { color: #d97706; } .ft-label.info { color: var(--red); }
+  .ft-sub { font-size: 10px; color: var(--light); margin-top: 1px; }
+
+  /* TOAST & MODALS */
+  .toast { position: absolute; bottom: 90px; left: 20px; right: 20px; background: var(--dark); color: var(--cream); border-radius: 14px; padding: 14px 18px; font-size: 12px; font-weight: 500; z-index: 999; transform: translateY(20px); opacity: 0; transition: all 0.3s; display: flex; align-items: center; gap: 10px; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast-icon { font-size: 18px; }
+  .done-overlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.5); z-index: 600; border-radius: 42px; align-items: flex-end; justify-content: center; padding-bottom: 24px; }
+  .done-overlay.active { display: flex; }
+  .done-modal { background: var(--white); border-radius: 28px; width: 100%; padding: 28px 24px; text-align: center; }
+  .done-emoji { font-size: 52px; margin-bottom: 10px; }
+  .done-modal h3 { font-family: 'Bebas Neue', sans-serif; font-size: 30px; color: var(--dark); }
+  .done-modal p { font-size: 12px; color: var(--mid); margin: 6px 0 20px; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="phone-inner">
+    <div class="notch"></div>
+    <div class="status-bar"><span>9:41</span><span>●●●● WiFi 🔋</span></div>
+
+    <!-- HOME -->
+    <div class="screen active" id="screen-home">
+      <div class="home-header">
+        <div class="home-greeting">Good morning</div>
+        <div class="home-name">Mariana G.</div>
+        <div class="home-streak">🔥 7-day streak</div>
+      </div>
+      <div class="focus-card">
+        <div class="focus-card-label">Today's Focus Goal</div>
+        <div class="focus-ring-wrap">
+          <svg viewBox="0 0 140 140">
+            <circle cx="70" cy="70" r="58" fill="none" stroke="#eee" stroke-width="10"/>
+            <circle cx="70" cy="70" r="58" fill="none" stroke="#CC0000" stroke-width="10" stroke-dasharray="364" stroke-dashoffset="182" stroke-linecap="round" transform="rotate(-90 70 70)"/>
+          </svg>
+          <div class="focus-ring-center">
+            <div class="focus-ring-time">1:30</div>
+            <div class="focus-ring-sub">hrs focused</div>
+          </div>
+        </div>
+        <button class="focus-start-btn" onclick="startFocusMode()">START FOCUS SESSION</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-val">4</div><div class="stat-unit">sessions</div></div>
+        <div class="stat-card"><div class="stat-val">240</div><div class="stat-unit">pts earned</div></div>
+        <div class="stat-card"><div class="stat-val">6.5</div><div class="stat-unit">hrs sleep</div></div>
+      </div>
+      <div class="checkin-card" onclick="showScreen('screen-checkin')">
+        <div class="checkin-icon">🧠</div>
+        <div class="checkin-text"><h4>Daily Check-in</h4><p>1 min · How are you feeling?</p></div>
+        <div class="checkin-arrow">›</div>
+      </div>
+      <div class="section-pad"><div class="section-label">Active Challenges</div></div>
+      <div class="challenge-card" style="margin:0 20px">
+        <div class="challenge-badge">🚶</div>
+        <div class="challenge-info"><h4>Walk to Class (No Phone)</h4><p>3 of 5 days completed</p></div>
+        <div class="challenge-pts">+50 pts</div>
+      </div>
+      <div class="challenge-card" style="margin:10px 20px 0">
+        <div class="challenge-badge">📚</div>
+        <div class="challenge-info"><h4>Study Hall: 2hr Block</h4><p>Tap to start · Library</p></div>
+        <div class="challenge-pts">+80 pts</div>
+      </div>
+    </div>
+
+    <!-- FOCUS -->
+    <div class="screen" id="screen-focus">
+      <div class="focus-screen-bg">
+        <div class="focus-mode-label">Focus Session Active</div>
+        <div class="big-timer" id="focus-timer">25<span>:00</span></div>
+        <div class="focus-progress-bar-wrap" style="width:100%"><div class="focus-progress-bar" id="focus-bar" style="width:0%"></div></div>
+        <div class="focus-msg">Stay off distracting apps. You've got this! 💪</div>
+        <div class="focus-controls">
+          <button class="ctrl-btn secondary" onclick="stopFocusTimer()">⏹</button>
+          <button class="ctrl-btn primary" id="pause-btn" onclick="togglePause()">⏸</button>
+          <button class="ctrl-btn secondary" onclick="completeFocus()">✓</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHECK-IN -->
+    <div class="screen" id="screen-checkin">
+      <div class="checkin-screen">
+        <h2>How Are<br>You Feeling?</h2>
+        <p>A quick check on mood, stress and sleep to personalize your experience.</p>
+        <div class="section-label" style="margin-bottom:8px">Mood right now</div>
+        <div class="mood-grid">
+          <button class="mood-btn" onclick="selectMood(this)">😔<span>Low</span></button>
+          <button class="mood-btn" onclick="selectMood(this)">😐<span>Meh</span></button>
+          <button class="mood-btn" onclick="selectMood(this)">🙂<span>OK</span></button>
+          <button class="mood-btn" onclick="selectMood(this)">😊<span>Good</span></button>
+          <button class="mood-btn" onclick="selectMood(this)">🤩<span>Great</span></button>
+        </div>
+        <div class="sleep-slider-wrap">
+          <label>Hours of sleep last night</label>
+          <div class="sleep-display" id="sleep-display">7 hrs</div>
+          <input type="range" min="3" max="10" step="0.5" value="7" oninput="document.getElementById('sleep-display').textContent=this.value+' hrs'">
+        </div>
+        <div class="sleep-slider-wrap">
+          <label>Stress level today</label>
+          <div class="sleep-display" id="stress-display" style="color:var(--red)">5 / 10</div>
+          <input type="range" min="1" max="10" step="1" value="5" oninput="document.getElementById('stress-display').textContent=this.value+' / 10'">
+        </div>
+        <button class="submit-btn" onclick="submitCheckin()">SUBMIT CHECK-IN (+30 PTS)</button>
+      </div>
+      <div class="checkin-done" id="checkin-done">
+        <div class="big-emoji">🎉</div>
+        <h3>Check-in Complete!</h3>
+        <p>You earned <strong>30 points.</strong><br>Keep building those healthy habits.</p>
+        <button class="submit-btn" onclick="showScreen('screen-home')">BACK TO HOME</button>
+      </div>
+    </div>
+
+    <!-- CHALLENGES -->
+    <div class="screen" id="screen-challenges">
+      <div class="challenges-screen">
+        <h2>Campus Challenges</h2>
+        <div class="sub">Complete offline actions. Earn real rewards.</div>
+        <div class="pts-banner"><div class="pts-banner-left">Your Points Balance</div><div class="pts-banner-val">240 PTS</div></div>
+        <div class="challenge-item" onclick="showToast('Challenge joined! 🎉')"><div class="ci-icon red">🚶</div><div class="ci-body"><h4>Walk to Class (No Phone)</h4><p>Walk campus routes without your phone</p><div class="ci-progress-wrap"><div class="ci-progress" style="width:60%"></div></div></div><div class="ci-pts">50</div></div>
+        <div class="challenge-item" onclick="showToast('Challenge started! 📚')"><div class="ci-icon blue">📚</div><div class="ci-body"><h4>Study Hall 2-Hour Block</h4><p>Start a focus session from the library</p><div class="ci-progress-wrap"><div class="ci-progress" style="width:0%"></div></div></div><div class="ci-pts">80</div></div>
+        <div class="challenge-item"><div class="ci-icon green">🌿</div><div class="ci-body"><h4>Wellness Walk</h4><p>Visit the campus wellness office</p><div class="ci-progress-wrap"><div class="ci-progress" style="width:100%;background:#4caf50"></div></div></div><div class="ci-check">✓</div></div>
+        <div class="challenge-item" onclick="showToast('Social challenge accepted! 🤝')"><div class="ci-icon gold">☕</div><div class="ci-body"><h4>Phone-Free Coffee</h4><p>Have coffee with a friend, no phones</p><div class="ci-progress-wrap"><div class="ci-progress" style="width:0%"></div></div></div><div class="ci-pts">40</div></div>
+        <div class="challenge-item" onclick="showToast('Weekly challenge accepted! 📖')"><div class="ci-icon red">📖</div><div class="ci-body"><h4>Weekly Reading Goal</h4><p>Read 30 min/day for 5 days</p><div class="ci-progress-wrap"><div class="ci-progress" style="width:40%"></div></div></div><div class="ci-pts">120</div></div>
+      </div>
+    </div>
+
+    <!-- REWARDS -->
+    <div class="screen" id="screen-rewards">
+      <div class="rewards-screen">
+        <h2>Campus Rewards</h2>
+        <div class="rewards-sub">Redeem points at partner locations</div>
+        <div class="rewards-pts-card"><div class="rpc-label">Available Points</div><div class="rpc-pts">240</div><div class="rpc-sub">Keep focusing to earn more</div></div>
+        <div class="reward-grid">
+          <div class="reward-card" onclick="showToast('☕ Free coffee redeemed!')"><div class="rc-icon">☕</div><h4>Free Coffee</h4><p>Campus cafeteria</p><div class="rc-cost">100 pts</div></div>
+          <div class="reward-card" onclick="showToast('📚 Bookstore discount!')"><div class="rc-icon">📚</div><h4>10% Off</h4><p>Campus bookstore</p><div class="rc-cost">150 pts</div></div>
+          <div class="reward-card locked"><div class="rc-lock">🔒</div><div class="rc-icon">🎟</div><h4>Event Ticket</h4><p>Campus events</p><div class="rc-cost">300 pts</div></div>
+          <div class="reward-card locked"><div class="rc-lock">🔒</div><div class="rc-icon">🧘</div><h4>Wellness Class</h4><p>1 free session</p><div class="rc-cost">400 pts</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRADES -->
+    <div class="screen" id="screen-grades">
+      <div class="grades-screen">
+        <h2>My Grades</h2>
+        <div class="grades-sub">Academic performance · 2025-1</div>
+
+        <div class="gpa-banner">
+          <div>
+            <div class="gpa-label">Cumulative GPA</div>
+            <div class="gpa-val">3.6</div>
+            <div class="gpa-sub">Top 30% of your cohort</div>
+          </div>
+          <div class="gpa-right">
+            <div class="gpa-badge">📈 +0.2 vs last sem</div>
+            <div class="gpa-semester">Semester 2025-1</div>
+          </div>
+        </div>
+
+        <div class="sem-tabs">
+          <button class="sem-tab active" onclick="selectSem(this,'s1')">2025-1</button>
+          <button class="sem-tab" onclick="selectSem(this,'s2')">2024-2</button>
+          <button class="sem-tab" onclick="selectSem(this,'s3')">2024-1</button>
+        </div>
+
+        <div id="s1">
+          <!-- English VII -->
+          <div class="subject-card" onclick="toggleSubject(this)">
+            <div class="subject-top">
+              <div class="subject-icon si-teal">🌐</div>
+              <div class="subject-info"><h4>English VII</h4><p>Prof. Ramírez · Tue / Thu</p></div>
+              <div class="subject-grade sg-a">4.5</div>
+            </div>
+            <div class="grade-bar-wrap"><div class="grade-bar gb-a" style="width:90%"></div></div>
+            <div class="subject-detail">
+              <div class="grade-row"><span class="gr-name">Business Pitch</span><span class="gr-weight">35%</span><span class="gr-score">4.8</span></div>
+              <div class="grade-row"><span class="gr-name">Oral Presentation</span><span class="gr-weight">25%</span><span class="gr-score">4.5</span></div>
+              <div class="grade-row"><span class="gr-name">Written Essay</span><span class="gr-weight">20%</span><span class="gr-score">4.3</span></div>
+              <div class="grade-row"><span class="gr-name">Participation</span><span class="gr-weight">20%</span><span class="gr-score">4.5</span></div>
+              <div class="focus-tip good" onclick="event.stopPropagation();showToast('🌐 Keep it up!')">
+                <span>🏆</span><div><div class="ft-label good">Top of the class!</div><div class="ft-sub">You're performing excellently</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Calculus -->
+          <div class="subject-card" onclick="toggleSubject(this)">
+            <div class="subject-top">
+              <div class="subject-icon si-purple">📐</div>
+              <div class="subject-info"><h4>Calculus II</h4><p>Prof. Herrera · Mon / Wed / Fri</p></div>
+              <div class="subject-grade sg-b">3.8</div>
+            </div>
+            <div class="grade-bar-wrap"><div class="grade-bar gb-b" style="width:76%"></div></div>
+            <div class="subject-detail">
+              <div class="grade-row"><span class="gr-name">Midterm Exam</span><span class="gr-weight">30%</span><span class="gr-score">3.9</span></div>
+              <div class="grade-row"><span class="gr-name">Quizzes (avg)</span><span class="gr-weight">20%</span><span class="gr-score">3.7</span></div>
+              <div class="grade-row"><span class="gr-name">Homework</span><span class="gr-weight">20%</span><span class="gr-score">4.0</span></div>
+              <div class="grade-row"><span class="gr-name">Final Exam</span><span class="gr-weight">30%</span><span class="gr-score">—</span></div>
+              <div class="focus-tip info" onclick="event.stopPropagation();startFocusMode()">
+                <span>🎯</span><div><div class="ft-label info">Start a Focus Session</div><div class="ft-sub">Boost your final exam score</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Programming -->
+          <div class="subject-card" onclick="toggleSubject(this)">
+            <div class="subject-top">
+              <div class="subject-icon si-blue">💻</div>
+              <div class="subject-info"><h4>Programming I</h4><p>Prof. Salcedo · Mon / Wed</p></div>
+              <div class="subject-grade sg-b">3.5</div>
+            </div>
+            <div class="grade-bar-wrap"><div class="grade-bar gb-b" style="width:70%"></div></div>
+            <div class="subject-detail">
+              <div class="grade-row"><span class="gr-name">Lab Projects</span><span class="gr-weight">40%</span><span class="gr-score">3.6</span></div>
+              <div class="grade-row"><span class="gr-name">Midterm</span><span class="gr-weight">30%</span><span class="gr-score">3.3</span></div>
+              <div class="grade-row"><span class="gr-name">Final Project</span><span class="gr-weight">30%</span><span class="gr-score">—</span></div>
+              <div class="focus-tip info" onclick="event.stopPropagation();startFocusMode()">
+                <span>🎯</span><div><div class="ft-label info">Focus to improve</div><div class="ft-sub">Final project due in 2 weeks</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Statistics -->
+          <div class="subject-card" onclick="toggleSubject(this)">
+            <div class="subject-top">
+              <div class="subject-icon si-orange">📊</div>
+              <div class="subject-info"><h4>Statistics</h4><p>Prof. Mora · Tue / Thu / Sat</p></div>
+              <div class="subject-grade sg-c">2.9</div>
+            </div>
+            <div class="grade-bar-wrap"><div class="grade-bar gb-c" style="width:58%"></div></div>
+            <div class="subject-detail">
+              <div class="grade-row"><span class="gr-name">Midterm Exam</span><span class="gr-weight">35%</span><span class="gr-score">2.7</span></div>
+              <div class="grade-row"><span class="gr-name">Problem Sets</span><span class="gr-weight">30%</span><span class="gr-score">3.1</span></div>
+              <div class="grade-row"><span class="gr-name">Final Exam</span><span class="gr-weight">35%</span><span class="gr-score">—</span></div>
+              <div class="focus-tip warn" onclick="event.stopPropagation();startFocusMode()">
+                <span>⚠️</span><div><div class="ft-label warn">Needs attention!</div><div class="ft-sub">Schedule extra study sessions now</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Biology -->
+          <div class="subject-card" onclick="toggleSubject(this)">
+            <div class="subject-top">
+              <div class="subject-icon si-green">🧬</div>
+              <div class="subject-info"><h4>General Biology</h4><p>Prof. Castro · Mon / Fri</p></div>
+              <div class="subject-grade sg-a">4.2</div>
+            </div>
+            <div class="grade-bar-wrap"><div class="grade-bar gb-a" style="width:84%"></div></div>
+            <div class="subject-detail">
+              <div class="grade-row"><span class="gr-name">Lab Reports</span><span class="gr-weight">30%</span><span class="gr-score">4.5</span></div>
+              <div class="grade-row"><span class="gr-name">Midterm</span><span class="gr-weight">35%</span><span class="gr-score">4.0</span></div>
+              <div class="grade-row"><span class="gr-name">Final</span><span class="gr-weight">35%</span><span class="gr-score">—</span></div>
+              <div class="focus-tip good" onclick="event.stopPropagation();showToast('🧬 Biology session started!')">
+                <span>🎯</span><div><div class="ft-label good">Great work!</div><div class="ft-sub">Keep reviewing your lab content</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PE -->
+          <div class="subject-card" onclick="toggleSubject(this)">
+            <div class="subject-top">
+              <div class="subject-icon si-pink">🏃</div>
+              <div class="subject-info"><h4>Physical Education</h4><p>Prof. Vargas · Wed</p></div>
+              <div class="subject-grade sg-a">4.8</div>
+            </div>
+            <div class="grade-bar-wrap"><div class="grade-bar gb-a" style="width:96%"></div></div>
+            <div class="subject-detail">
+              <div class="grade-row"><span class="gr-name">Attendance</span><span class="gr-weight">40%</span><span class="gr-score">5.0</span></div>
+              <div class="grade-row"><span class="gr-name">Performance</span><span class="gr-weight">40%</span><span class="gr-score">4.8</span></div>
+              <div class="grade-row"><span class="gr-name">Participation</span><span class="gr-weight">20%</span><span class="gr-score">4.5</span></div>
+              <div class="focus-tip good" onclick="event.stopPropagation();showToast('🏆 Keep moving!')">
+                <span>🏆</span><div><div class="ft-label good">Top of the class!</div><div class="ft-sub">Your activity streak helps here too</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="s2" style="display:none">
+          <div style="text-align:center;padding:40px 20px;color:var(--light);font-size:13px">
+            <div style="font-size:40px;margin-bottom:12px">📁</div>
+            Semester 2024-2 · GPA: <strong style="color:var(--dark)">3.4</strong>
+          </div>
+        </div>
+        <div id="s3" style="display:none">
+          <div style="text-align:center;padding:40px 20px;color:var(--light);font-size:13px">
+            <div style="font-size:40px;margin-bottom:12px">📁</div>
+            Semester 2024-1 · GPA: <strong style="color:var(--dark)">3.2</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <div class="bottom-nav">
+      <button class="nav-btn active" id="nav-home" onclick="showScreen('screen-home')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home
+      </button>
+      <button class="nav-btn" id="nav-focus" onclick="showScreen('screen-focus')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>Focus
+      </button>
+      <button class="nav-btn" id="nav-checkin" onclick="showScreen('screen-checkin')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>Check-in
+      </button>
+      <button class="nav-btn" id="nav-challenges" onclick="showScreen('screen-challenges')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Challenges
+      </button>
+      <button class="nav-btn" id="nav-grades" onclick="showScreen('screen-grades')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>Grades
+      </button>
+    </div>
+
+    <!-- DONE MODAL -->
+    <div class="done-overlay" id="done-overlay">
+      <div class="done-modal">
+        <div class="done-emoji">🎯</div>
+        <h3>Session Complete!</h3>
+        <p>You focused for 25 minutes and earned <strong>+60 points</strong>.</p>
+        <button class="submit-btn" onclick="closeDone()">AWESOME!</button>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"><span class="toast-icon">✅</span><span id="toast-msg">Done!</span></div>
+  </div>
+</div>
+
+<script>
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    const m = {'screen-home':'nav-home','screen-focus':'nav-focus','screen-checkin':'nav-checkin','screen-challenges':'nav-challenges','screen-grades':'nav-grades'};
+    if(m[id]) document.getElementById(m[id]).classList.add('active');
+    if(id==='screen-checkin'){ document.getElementById('checkin-done').classList.remove('active'); document.querySelector('.checkin-screen').style.display='flex'; }
+  }
+
+  let timerInterval=null, totalSec=25*60, remaining=totalSec, paused=false;
+  function startFocusMode(){ remaining=totalSec; paused=false; showScreen('screen-focus'); clearInterval(timerInterval); timerInterval=setInterval(tick,1000); updateTimerDisplay(); }
+  function tick(){ if(!paused){ remaining--; if(remaining<=0){ clearInterval(timerInterval); completeFocus(); } updateTimerDisplay(); } }
+  function updateTimerDisplay(){ const m=Math.floor(remaining/60),s=remaining%60; document.getElementById('focus-timer').innerHTML=String(m).padStart(2,'0')+'<span>:'+String(s).padStart(2,'0')+'</span>'; document.getElementById('focus-bar').style.width=((totalSec-remaining)/totalSec*100)+'%'; }
+  function togglePause(){ paused=!paused; document.getElementById('pause-btn').textContent=paused?'▶':'⏸'; }
+  function stopFocusTimer(){ clearInterval(timerInterval); remaining=totalSec; paused=false; document.getElementById('pause-btn').textContent='⏸'; showScreen('screen-home'); showToast('Session cancelled'); }
+  function completeFocus(){ clearInterval(timerInterval); document.getElementById('done-overlay').classList.add('active'); }
+  function closeDone(){ document.getElementById('done-overlay').classList.remove('active'); showScreen('screen-home'); showToast('🎉 +60 pts added!'); }
+
+  function selectMood(btn){ document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('selected')); btn.classList.add('selected'); }
+  function submitCheckin(){ document.querySelector('.checkin-screen').style.display='none'; document.getElementById('checkin-done').classList.add('active'); }
+
+  function toggleSubject(card){ card.classList.toggle('open'); }
+  function selectSem(btn,id){ document.querySelectorAll('.sem-tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); ['s1','s2','s3'].forEach(x=>document.getElementById(x).style.display='none'); document.getElementById(id).style.display='block'; }
+
+  let toastTimer;
+  function showToast(msg){ const t=document.getElementById('toast'); document.getElementById('toast-msg').textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2500); }
+</script>
+</body>
+</html>
